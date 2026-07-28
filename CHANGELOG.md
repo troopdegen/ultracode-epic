@@ -3,6 +3,21 @@
 All notable changes to these three skills are recorded here. Versioning applies to the trio as a
 set, since they ship and update together.
 
+## [1.0.1] - 2026-07-28
+
+Fixes the entry point. `1.0.0`'s README and `ultracode-epic/SKILL.md` both told a user with only
+an idea to run `/ultraplan-wave` first and treated `/ultracode-epic` as just the multi-wave
+runner at the end. That buried the skill people were actually asking to try, and it meant
+`/ultracode-epic` stopped and told a human to go type a different command by hand instead of
+getting the plan written itself.
+
+- `ultracode-epic` — now the documented entry point. §1 invokes `/ultraplan-wave` itself when
+  `ENTRY-POINT.md` or `IMPLEMENTATION-PLAN.md` is missing, instead of stopping and telling the
+  human to run it manually. It still refuses to author the plan's content itself, same as
+  before; invoking the planner isn't the same as writing the plan.
+- `README.md` — "Try it" now opens with `/ultracode-epic` instead of `/ultraplan-wave`, and the
+  skill list leads with `/ultracode-epic (start here)`.
+
 ## [1.0.0] - 2026-07-28
 
 Initial public release.

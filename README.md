@@ -15,18 +15,21 @@ skills assume a clean tree to diff against.
 the `Agent`/`Workflow` tooling these skills use to dispatch subagents (current Claude Code
 ships with both). Git. Whatever build/test tooling your target project already uses.
 
+- **`/ultracode-epic`** (start here) — the entry point. Checks for a plan, invokes
+  `/ultraplan-wave` to write one if it's missing, then runs every wave back to back in one
+  session, deciding at each boundary whether to cross or stop, against a gate contract frozen
+  before the first wave dispatches. **Not yet validated as its own loop** — see
+  [Provenance](#provenance).
 - **`/ultraplan-wave`** — writes the spec: `ENTRY-POINT.md` + `IMPLEMENTATION-PLAN.md`, including
   the file-ownership collision table that makes parallel agents safe to run at all.
 - **`/ultracode-wave`** — runs one wave end to end: branch, worktrees, dispatch, verify, merge,
   stop at a human gate. **Validated:** pokta-care Wave 1, 4 agents, 437 → 602 tests, zero
   collisions.
-- **`/ultracode-epic`** — runs every wave in a plan back to back in one session, deciding at each
-  boundary whether to cross or stop, against a gate contract frozen before the first wave
-  dispatches. **Not yet validated as its own loop** — see [Provenance](#provenance).
 
-They ship together. `/ultracode-epic` calls `/ultracode-wave`, which refuses to run without the
-files `/ultraplan-wave` produces. Installing just one of the three gives you a skill that
-immediately tells you to go run a different one.
+They ship together. `/ultracode-epic` invokes `/ultraplan-wave` when there's no plan yet, and
+calls `/ultracode-wave` once per wave, which refuses to run without the files `/ultraplan-wave`
+produces. Installing just one of the three gives you a skill that immediately tells you to go
+run a different one.
 
 ## Install
 
@@ -41,7 +44,7 @@ cd ultracode-epic
 This copies all three skills into `~/.claude/skills/`. If Claude Code is already running, start
 a new session — it won't pick up newly installed skills mid-session.
 
-**Smoke test:** in the new session, type `/ultraplan-wave` and confirm it appears in the skill
+**Smoke test:** in the new session, type `/ultracode-epic` and confirm it appears in the skill
 list before you rely on it for anything real.
 
 To update later: `git pull && ./install.sh` (see [CHANGELOG.md](CHANGELOG.md) for what changed).
@@ -56,21 +59,21 @@ skills repo, and not from your home directory. These skills write files relative
 current working directory.
 
 ```
-/ultraplan-wave
+/ultracode-epic
 ```
 
-If you don't already have a task list or design doc, `/ultraplan-wave` will ask you a handful of
-quick questions first — what you're building, your stack, whether this is greenfield or an
-existing codebase, roughly how big the change is, and anything off-limits (production, secrets,
-regulated data). Under 5 minutes. It turns your answers into the plan the rest of the pipeline
-executes against.
+Start there even if all you have is an idea. `/ultracode-epic` checks for a plan first; if
+there isn't one, it invokes `/ultraplan-wave` for you. If you don't already have a task list or
+design doc, `/ultraplan-wave` will ask you a handful of quick questions — what you're building,
+your stack, whether this is greenfield or an existing codebase, roughly how big the change is,
+and anything off-limits (production, secrets, regulated data). Under 5 minutes. It turns your
+answers into the plan the rest of the pipeline executes against, and writes two files into your
+target repo — `ENTRY-POINT.md` and `IMPLEMENTATION-PLAN.md`, by default in the directory you ran
+it from (say where you'd rather have them if you want somewhere else).
 
-It writes two files into your target repo — `ENTRY-POINT.md` and `IMPLEMENTATION-PLAN.md`,
-by default in the directory you ran it from (say where you'd rather have them if you want
-somewhere else). `/ultracode-wave` and `/ultracode-epic` look for them there.
-
-Once the plan exists, `/ultracode-wave 1` runs the first wave. `/ultracode-epic` runs all of them
-in sequence if the plan has more than one.
+Once the plan exists, `/ultracode-epic` freezes a gate contract with you and runs the waves in
+order, calling `/ultracode-wave` once per wave and stopping at each gate. If you'd rather drive
+one wave at a time yourself instead of the whole epic, `/ultracode-wave 1` runs just the first.
 
 ## What it costs
 

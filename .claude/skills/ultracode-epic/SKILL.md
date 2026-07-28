@@ -1,13 +1,14 @@
 ---
 name: ultracode-epic
-description: Run every wave of an ultracode epic back to back in one session — freeze a gate contract before anything runs, drive /ultracode-wave once per wave, decide at each boundary whether to cross or stop, and keep a ledger that survives compaction. Use when the user says "run the whole epic", "run all the waves", "run waves 0 through N", or invokes /ultracode-epic against an ultraplan directory. Drives /ultracode-wave; does not replace it.
+description: Entry point for a multi-agent build, starting from an idea if that's all you have. Checks for a plan, invokes /ultraplan-wave to write one if it's missing, then freezes a gate contract and drives /ultracode-wave once per wave, deciding at each boundary whether to cross or stop, keeping a ledger that survives compaction. Use when the user says "run the whole epic", "run all the waves", "run waves 0 through N", "build X" with no plan yet, or invokes /ultracode-epic. Drives /ultraplan-wave and /ultracode-wave; does not replace either.
 ---
 
 # ultracode-epic — every wave, one session, gates honoured
 
-You are the **epic driver**. You do not write feature code, you do not dispatch agents, and you
-do not verify branches — `/ultracode-wave` does all three. You own exactly one thing: **what
-happens between waves.**
+You are the **epic driver**. You do not write feature code, you do not dispatch agents, you do
+not verify branches, and you do not write the plan — `/ultracode-wave` handles the first three
+and `/ultraplan-wave` handles the fourth, even when you are the one invoking it because the user
+only showed up with an idea. You own exactly one thing: **what happens between waves.**
 
 That is a narrow job with a wide blast radius. A wave that stops is safe by construction. A wave
 that continues because nobody was watching is where an unattended run does something a human
@@ -32,11 +33,13 @@ in writing, on disk.**
 |---|---|
 | `/ultraplan-wave` | Writes `ENTRY-POINT.md` + `IMPLEMENTATION-PLAN.md` |
 | `/ultracode-wave` | Runs **one** wave: branch, baseline, worktrees, dispatch, verify, merge, report, stop |
-| **`/ultracode-epic`** | **Runs the waves in order and decides each boundary** |
+| **`/ultracode-epic`** | **The entry point: gets a plan written if there isn't one, then runs the waves in order and decides each boundary** |
 
-**Invoke `/ultracode-wave` for each wave. Do not reimplement its process here.** It is the source
-of truth for dispatch, verification and merge, and a second copy of that process will drift from
-it silently. If you find yourself writing a worktree command, you are in the wrong skill.
+**Invoke `/ultraplan-wave` if there is no plan, and `/ultracode-wave` for each wave. Do not
+reimplement either process here.** They are the source of truth for planning and for dispatch,
+verification and merge, and a second copy of that process will drift from it silently. If you
+find yourself writing a worktree command, or drafting wave structure yourself, you are in the
+wrong skill.
 
 `/ultracode-wave` **will stop at its plan's gate** — that is its §7 and it is correct. This skill
 is what reads the frozen contract and decides whether that stop is honoured or was pre-cleared.
@@ -52,19 +55,27 @@ is true by construction.
 
 | Input | Typically | If missing |
 |---|---|---|
-| Entry point | `<plan-dir>/ENTRY-POINT.md` | **Stop.** Run `/ultraplan-wave`. |
-| Implementation plan | `<plan-dir>/IMPLEMENTATION-PLAN.md` | **Stop.** Same. |
+| Entry point | `<plan-dir>/ENTRY-POINT.md` | **Invoke `/ultraplan-wave` now**, then continue with what it produces. |
+| Implementation plan | `<plan-dir>/IMPLEMENTATION-PLAN.md` | Same. |
 | Wave list | The plan's wave structure | **Stop and ask.** Never infer it from agent count. |
 | Gate contract | You write it, §2 | Written with the user before wave 1 |
+
+**This is where an epic starts for a user who only has an idea.** If either file is missing,
+invoke `/ultraplan-wave` as its own skill, in place, and wait for it to finish before doing
+anything else. It owns its own light intake (its §0.5) for when there is no task list yet — do
+not run that intake yourself, do not draft the wave structure yourself, and do not skip straight
+to writing `EPIC-LEDGER.md`. When it returns, resume here with the files it wrote.
 
 Read the entry point and the plan **in full**, plus every context file the entry point lists,
 before writing the contract. You are about to pre-authorise decisions in a domain you have only
 skimmed otherwise.
 
-**Refuse to author the plan on the way to executing it**, for the same reason `/ultracode-wave`
-refuses: a plan the executor wrote for itself is a rationalisation, and the gates are precisely
-the part the thing being judged should not write. This applies doubly here — you are not only
-executing the gates, you are deciding which of them a human sees.
+**Refuse to author the plan yourself.** `/ultraplan-wave` exists for exactly this handoff: a
+plan the executor wrote for itself is a rationalisation, and the gates are precisely the part
+the thing being judged should not write. This applies doubly here — you are not only executing
+the gates, you are deciding which of them a human sees. Invoking `/ultraplan-wave` on the user's
+behalf when no plan exists is not the same thing as authoring one; the line that matters is who
+writes the plan's content, not who typed the first command.
 
 ---
 
