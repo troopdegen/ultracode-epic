@@ -45,13 +45,17 @@ that cannot be traced back to tickets is not reviewable.
 ```bash
 cd <CODE_REPO>
 git checkout <main> && git pull --ff-only
-git checkout -b <integration-branch>      # e.g. study-machine; reuse if it exists
+git checkout <integration-branch> 2>/dev/null || git checkout -b <integration-branch>
+# e.g. study-machine; the checkout-then-create-if-missing form is what actually reuses it —
+# `git checkout -b` alone fails outright on a branch that already exists.
 ```
 
-Then **verify the baseline is green and record the numbers**:
+Then **verify the baseline is green and record the numbers**, with your project's own
+typecheck and test commands (the examples below are illustrative, not a requirement to use
+pnpm):
 
 ```bash
-pnpm typecheck
+pnpm typecheck       # or the project's equivalent
 pnpm test            # or the project's equivalent
 ```
 
@@ -93,7 +97,7 @@ they never appear in the project repo's status.
 worktree has no `node_modules`. Agents that install concurrently mid-run race each other.
 
 ```bash
-for d in <dirs>; do (cd $d && pnpm install --frozen-lockfile > /tmp/i-$d.log 2>&1 && echo "$d ok") & done; wait
+for d in <dirs>; do (cd "$d" && pnpm install --frozen-lockfile > "/tmp/i-$(basename "$d").log" 2>&1 && echo "$d ok") & done; wait
 ```
 
 **Doc-only agents that work in a different repo** (a manuscript lane, an internOS docs lane)

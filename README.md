@@ -2,7 +2,18 @@
 
 Three Claude Code skills for running multi-agent builds without losing the human in the loop:
 you write a plan once, dispatch agents wave by wave, and freeze a gate contract up front so an
-unattended run can never cross a boundary nobody agreed to.
+unattended run is instructed never to cross a boundary nobody agreed to — and if it ever did,
+the ledger these skills write makes the violation visible, not silent.
+
+**This is prompt-enforced, not code-enforced.** These are instructions to an AI agent, not a
+sandboxed runtime. The agent creates git branches and worktrees, installs dependencies, runs
+your test suite, and merges code, inside the repo you point it at. Clone this into a repo you
+can afford to have modified, and commit or stash anything uncommitted before you start — the
+skills assume a clean tree to diff against.
+
+**Prerequisites:** [Claude Code](https://claude.com/claude-code) with custom skill support and
+the `Agent`/`Workflow` tooling these skills use to dispatch subagents (current Claude Code
+ships with both). Git. Whatever build/test tooling your target project already uses.
 
 - **`/ultraplan-wave`** — writes the spec: `ENTRY-POINT.md` + `IMPLEMENTATION-PLAN.md`, including
   the file-ownership collision table that makes parallel agents safe to run at all.
@@ -30,9 +41,19 @@ cd ultracode-epic
 This copies all three skills into `~/.claude/skills/`. If Claude Code is already running, start
 a new session — it won't pick up newly installed skills mid-session.
 
+**Smoke test:** in the new session, type `/ultraplan-wave` and confirm it appears in the skill
+list before you rely on it for anything real.
+
 To update later: `git pull && ./install.sh` (see [CHANGELOG.md](CHANGELOG.md) for what changed).
 
+To remove: `rm -rf ~/.claude/skills/{ultraplan-wave,ultracode-wave,ultracode-epic}`, or
+`./install.sh --uninstall` from your clone.
+
 ## Try it
+
+Run this **from inside the repo you actually want to build in** — not from inside this
+skills repo, and not from your home directory. These skills write files relative to your
+current working directory.
 
 ```
 /ultraplan-wave
@@ -44,17 +65,21 @@ existing codebase, roughly how big the change is, and anything off-limits (produ
 regulated data). Under 5 minutes. It turns your answers into the plan the rest of the pipeline
 executes against.
 
+It writes two files into your target repo — `ENTRY-POINT.md` and `IMPLEMENTATION-PLAN.md`,
+by default in the directory you ran it from (say where you'd rather have them if you want
+somewhere else). `/ultracode-wave` and `/ultracode-epic` look for them there.
+
 Once the plan exists, `/ultracode-wave 1` runs the first wave. `/ultracode-epic` runs all of them
 in sequence if the plan has more than one.
 
 ## What it costs
 
-A single 4-agent wave runs roughly **~875k subagent tokens and ~30 minutes wall clock** on a
-mature codebase (the validated reference run). On pay-as-you-go API pricing that's on the order
-of low-to-mid single-digit dollars per wave; if you're on a Claude subscription plan with Code
-included, it draws from that instead. Exact cost depends on model, plan, and how much of the
-codebase gets read — treat the token figure as the source of truth and the dollar range as a
-rough translation, not a quote.
+A single 4-agent wave ran **~875k subagent tokens and ~30 minutes wall clock** on the one
+mature codebase this has been measured on so far — treat that as one data point, not a
+guarantee. Translate the token figure into a dollar estimate yourself using
+[Anthropic's current pricing](https://www.anthropic.com/pricing) for whatever model your
+Claude Code session is using; how that usage is billed (pay-as-you-go vs. a subscription
+plan with Code included) depends on your own plan, and this project makes no claim about it.
 
 `/ultracode-epic` will state the wave × agent count and where it stops even if everything passes,
 and ask for an explicit go-ahead before dispatching wave 1.
@@ -84,10 +109,14 @@ something other than the recorded pass condition.
 
 ## Provenance
 
-`/ultracode-wave` is validated: pokta-care Wave 1, 2026-07-27, 4 agents, 437 → 602 tests, zero
-collisions. `/ultracode-epic` (the epic-level loop across multiple waves) is derived from that
-run's failure protocol plus one pre-flight check on a second project — it has not yet completed
-a full multi-wave epic end to end. Treat it as the newest, least-proven piece of the three.
+`/ultracode-wave` has run successfully once, on a personal project (pokta-care), on
+2026-07-27: 4 agents, 437 → 602 tests, zero collisions. That's a real result, but it's a
+single anecdotal run with no public report or artifact attached — one data point, not a
+benchmark. `/ultracode-epic` (the epic-level loop across multiple waves) is derived from that
+run's failure protocol plus one pre-flight check on a second project — it has not yet
+completed a full multi-wave epic end to end. Treat it as the newest, least-proven piece of
+the three, and expect rough edges on codebases and stacks it hasn't touched yet (built and
+run so far on a Node/pnpm project — other stacks are untested, not unsupported).
 
 ## Coming soon
 
